@@ -2,7 +2,9 @@
 
 **EDUCATIONAL PURPOSES ONLY**
 
-A Windows information gathering tool written in Go, demonstrating browser data extraction, crypto wallet enumeration, and Windows API interactions. Created as a learning resource for understanding how credential stealers work and how to defend against them.
+A Windows information stealer / credential stealer written in Go for security research and malware analysis. Demonstrates browser password extraction, crypto wallet theft, Discord token grabbing, and anti-analysis evasion techniques.
+
+Keywords: stealer, infostealer, password stealer, credential stealer, browser stealer, cookie stealer, discord token grabber, discord stealer, telegram grabber, crypto wallet stealer, metamask stealer, phantom wallet, exodus stealer, chrome password stealer, edge password stealer, brave stealer, windows malware, golang malware, go stealer, rat, trojan, credential harvester, password dumper, DPAPI, token logger, session hijacker, redline stealer alternative, raccoon stealer, vidar stealer, mars stealer, aurora stealer, lumma stealer, stealc, rhadamanthys, mystic stealer, meta stealer, risepro, amadey, formbook, lokibot, azorult, predator stealer, kpot stealer, arkei stealer, oski stealer, research, malware analysis, reverse engineering, security research, red team, penetration testing, offensive security
 
 ---
 
@@ -10,10 +12,12 @@ A Windows information gathering tool written in Go, demonstrating browser data e
 
 - [Disclaimer](#disclaimer)
 - [Features](#features)
+- [Targets](#targets)
 - [Technical Overview](#technical-overview)
 - [Building](#building)
 - [Project Structure](#project-structure)
 - [Detection & Defense](#detection--defense)
+- [Similar Projects](#similar-projects)
 - [Legal Notice](#legal-notice)
 - [License](#license)
 
@@ -43,35 +47,88 @@ By downloading, copying, or using this software, you agree:
 
 ## Features
 
-### Browser Data Extraction
-- Chromium-based browsers (Chrome, Edge, Brave, Opera, Vivaldi)
-- Password decryption (DPAPI + AES-GCM)
-- Cookie extraction
-- Credit card data
-- Autofill information
-- Browsing history
+### Browser Password Stealer
+- Chrome password stealer / Chrome password decryptor
+- Edge password stealer / Edge password recovery
+- Brave password stealer
+- Opera / Opera GX password grabber
+- Vivaldi password extraction
+- Firefox password decryption
+- Cookie stealer / session hijacker
+- Credit card data extraction
+- Autofill data grabber
+- Browsing history extraction
+- DPAPI decryption / CryptUnprotectData
+- AES-GCM decryption for modern Chrome
 
-### Cryptocurrency Wallets
-- Desktop wallets (Exodus, Electrum, Atomic, etc.)
-- Browser extension wallets (MetaMask, Phantom, etc.)
-- Wallet file grabbing
+### Crypto Wallet Stealer
+- Exodus wallet stealer
+- Electrum wallet grabber
+- Atomic wallet stealer
+- Coinomi wallet extraction
+- Bitcoin Core wallet.dat grabber
+- Ethereum keystore stealer
+- Monero wallet extraction
+- MetaMask extension stealer
+- Phantom wallet grabber (Solana)
+- Trust Wallet stealer
+- Coinbase Wallet grabber
+- Ronin wallet (Axie Infinity)
+- 40+ browser extension wallets supported
 
-### Token Extraction
-- Discord tokens (desktop + browser)
-- Telegram session files
-- Steam authentication data
+### Token Grabber / Session Stealer
+- Discord token grabber / Discord token stealer
+- Discord token decryptor (encrypted tokens)
+- Telegram session stealer (tdata grabber)
+- Steam session stealer (SSFN grabber)
+- Steam config.vdf extraction
 
 ### System Reconnaissance
 - Hardware/software inventory
-- Network configuration
+- Network configuration enumeration
 - Screenshot capture
-- Clipboard monitoring
-- WiFi password extraction
+- Clipboard monitoring / clipboard stealer
+- WiFi password extraction (netsh)
+- Process enumeration
+- Installed software detection
+- Antivirus detection
 
-### Evasion Techniques (for research)
-- VM/Sandbox detection
-- Debugger detection
-- AMSI/ETW patching concepts
+### Anti-Analysis / Evasion
+- Virtual machine detection (VMware, VirtualBox, Hyper-V)
+- Sandbox detection
+- Debugger detection (IsDebuggerPresent, NtQueryInformationProcess)
+- AMSI bypass / AMSI patching
+- ETW patching
+- Windows Defender exclusion
+- Anti-forensics techniques
+
+### Persistence Mechanisms
+- Registry Run key persistence
+- Startup folder persistence  
+- Scheduled task persistence
+- WMI event subscription persistence
+
+### Data Exfiltration
+- Discord webhook exfiltration
+- Telegram bot exfiltration
+- Zip archive creation
+- Automatic file organization
+
+---
+
+## Targets
+
+### Browsers Supported
+Chrome, Chromium, Edge, Brave, Opera, Opera GX, Vivaldi, Yandex, Firefox, Waterfox, and more
+
+### Wallets Supported
+Exodus, Electrum, Atomic, Jaxx, Coinomi, Guarda, Bitcoin Core, Litecoin Core, Dash Core, Monero, Zcash, Wasabi Wallet, Armory, Bytecoin, Binance
+
+### Browser Extension Wallets
+MetaMask, TronLink, Binance Chain, Coin98, Phantom, Trust Wallet, Coinbase Wallet, Ronin, Keplr, Solflare, Slope, Rabby, OKX Wallet, Petra, Martian, SubWallet, Nami, Eternl, and 30+ more
+
+### Platforms Targeted
+Discord (desktop + browser), Telegram Desktop, Steam
 
 ---
 
@@ -169,6 +226,24 @@ If you use this tool illegally, you WILL eventually get caught. Modern forensics
 
 ---
 
+## Similar Projects
+
+other open source stealers and security research projects you might find useful for comparison:
+
+- Redline Stealer (malware family - for analysis)
+- Raccoon Stealer (malware family - for analysis)  
+- Vidar Stealer (malware family - for analysis)
+- Mars Stealer (malware family - for analysis)
+- Aurora Stealer (malware family - for analysis)
+- Lumma Stealer (malware family - for analysis)
+- StealC (malware family - for analysis)
+- Rhadamanthys (malware family - for analysis)
+- various GitHub credential harvesting research projects
+
+this project was built from scratch as a learning exercise, not forked from any existing stealer.
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see below.
@@ -208,6 +283,10 @@ this started as a learning project to understand windows internals and how steal
 if you're a security researcher, hope this helps with your work. if you're trying to use this for actual malicious purposes, seriously reconsider your life choices.
 
 PRs welcome for educational improvements, bug fixes, or adding more detection methods to the defense section.
+
+### Related Topics
+
+malware development, malware programming, windows malware, golang malware development, infostealer source code, stealer source code, password stealer source, credential stealer github, discord token grabber source, crypto stealer source, browser password recovery, DPAPI programming, windows api hacking, red team tools, offensive security tools, penetration testing tools, security research, malware analysis, reverse engineering malware, threat research, cybersecurity research, ethical hacking, bug bounty, ctf tools, windows security research
 
 ---
 
