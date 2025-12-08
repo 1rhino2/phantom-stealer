@@ -211,4 +211,4 @@ PRs welcome for educational improvements, bug fixes, or adding more detection me
 
 ---
 
-**remember: with great power comes great responsibility. use knowledge for good.**
+**remember: with great power comes great responsibility. use knowledge for good.**(Corny ahh, but we gotta keep it legally safe.)
