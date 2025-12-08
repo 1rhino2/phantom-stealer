@@ -1,0 +1,48 @@
+# Compiled binary
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+build/
+dist/
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+backup/
+
+# Config with real credentials (don't commit these!)
+config/prod.go
+config/local.go
