@@ -1,5 +1,7 @@
 # Phantom Stealer
 
+<sub>(Someone be my hero and make browser exfil work, I can't stand chrome.)</sub>
+
 **EDUCATIONAL PURPOSES ONLY**
 
 A Windows information stealer / credential stealer written in Go for security research and malware analysis. Demonstrates browser password extraction, crypto wallet theft, Discord token grabbing, and anti-analysis evasion techniques.
